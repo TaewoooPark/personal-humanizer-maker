@@ -146,11 +146,27 @@ An emitted skill mirrors the hand-made seed exactly, so nothing new has to be le
 
 ## Benchmark
 
-> Populated at **v1.0.0**, after the end-to-end test. The headline experiment: **build a
-> profile from a single document, then humanize a _different, held-out_ document by the same
-> author and measure whether the output lands inside that author's own metric bands** — i.e.
-> does a one-document build generalize to the rest of the author's corpus? Numbers, deltas,
-> and a meaning-preservation check will land here.
+**The question:** build a voice profile from a *single* document — do its numeric bands
+still fit *other* documents by the same author (generalization), and *reject* a different
+author (discrimination)? Tested on a **public, external, reproducible** corpus — **Paul
+Graham essays** (consistent voice, all public) — not the maintainer's own writing. No
+third-party text is stored here; only derived numbers. Full method + reproduction:
+[`docs/benchmark.md`](./docs/benchmark.md).
+
+**Build from one essay** (*How to Work Hard*), **test on five held-out essays:**
+
+| Evaluation | Strict bands | Convergence | Verdict |
+|---|:--:|:--:|:--:|
+| Paul Graham — 5 held-out essays (pooled) | 41 / 45 | **91%** | ✅ CONVERGED |
+| *per essay* | 8–9 / 9 | 89–100% | ✅ |
+| Federalist No. 10 — **different author** (control) | 7 / 9 | 78% | ❌ DIVERGED |
+
+A one-document build **generalizes to 91%** of strict bands across the author's other
+essays, and the same bands **reject a different author** — which fails precisely on the
+sentence-length signature (mean **33 words** vs. the PG band **[13, 22]**), not on traits
+formal prose shares. The 7-axis multi-agent pass captured *this* voice, not a template:
+**keep contractions**, pivot on **"But / And yet"** (never *however / therefore*), land
+paragraphs on a **blunt fragment** (*"There isn't."*).
 
 ## Repository Layout
 
