@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/TaewoooPark/personal-humanizer-maker/schemas/dimension_profile.schema.json",
+  "title": "dimension_profile",
+  "description": "Structured output of ONE axis-specialist analyzer agent. Each agent reads the raw samples + its slice of quant_profile + its taxonomy section, and returns the observed value of its axis group, a confidence grounded in how much sample evidence it found, rewrite rules phrased for the emitted skill, and before/after exemplars mined verbatim from the author's own text.",
+  "type": "object",
+  "required": ["axis_group", "language", "confidence", "sample_support", "observations", "rules", "exemplars"],
+  "additionalProperties": false,
+  "properties": {
+    "axis_group": {
+      "enum": [
+        "sentence_architecture",
+        "register_modality",
+        "lexical_register",
+        "cohesion_argument",
+        "stance_voice",
+        "figuration",
+        "formatting"
+      ]
+    },
+    "language": { "enum": ["ko", "en"] },
+    "confidence": {
+      "enum": ["high", "medium", "low"],
+      "description": "high: >=8 independent exemplars and a stable quant signal; medium: 3-7; low: <3 — the synthesizer will demote low-confidence rules to advisory."
+    },
+    "sample_support": { "type": "integer", "minimum": 0, "description": "count of distinct in-corpus exemplars this axis was inferred from." },
+    "observations": {
+      "type": "array",
+      "description": "plain-language findings about how this author handles this axis, each tied to evidence.",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "rules": {
+      "type": "array",
+      "description": "actionable rewrite rules for the emitted skill (the per-person analog of S1-S8 / A1-A3).",
+      "items": {
+        "type": "object",
+        "required": ["id", "statement", "strictness"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "stable id within the axis, e.g. SA1, RM2, CA1." },
+          "statement": { "type": "string", "description": "imperative rule the rewriter follows." },
+          "strictness": { "enum": ["strict", "advisory"], "description": "advisory when confidence is low or the trait is inconsistent in the corpus." },
+          "quant_target": { "type": "string", "description": "optional numeric target linking this rule to a quant_profile band." }
+        }
+      }
+    },
+    "exemplars": {
+      "type": "array",
+      "description": "before/after pairs. 'after' MUST be a real sentence from the author's corpus that exemplifies the trait; 'before' is a neutralized/plainer paraphrase of that same sentence (meaning identical). This proves the trait exists in real text rather than being invented.",
+      "items": {
+        "type": "object",
+        "required": ["before", "after"],
+        "additionalProperties": false,
+        "properties": {
+          "before": { "type": "string" },
+          "after": { "type": "string" },
+          "note": { "type": "string" },
+          "source_file": { "type": "string" }
+        }
+      }
+    },
+    "quant_anchor": {
+      "type": "object",
+      "description": "the subset of quant_profile.metrics this axis leaned on, echoed back for auditability.",
+      "additionalProperties": true
+    }
+  }
+}

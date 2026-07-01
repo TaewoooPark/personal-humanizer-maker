@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/TaewoooPark/personal-humanizer-maker/schemas/style_profile.schema.json",
+  "title": "style_profile",
+  "description": "The synthesized, machine-readable voice fingerprint — output of the synthesizer agent, sole input to scripts/emit_skill.py. Merges all dimension_profiles, resolves conflicts, demotes under-supported axes, and carries the numeric baseline bands the emitted skill's style_metrics.py will enforce. This is the single artifact the factory turns into a standalone personal-humanizer skill.",
+  "type": "object",
+  "required": ["profile_name", "language", "source", "baseline", "dimensions", "ironclad", "confidence", "meta"],
+  "additionalProperties": false,
+  "properties": {
+    "profile_name": { "type": "string", "description": "slug for the emitted skill, e.g. taewoo-urp. Used in the skill dir name humanize-<profile_name>." },
+    "display_name": { "type": "string", "description": "human-facing label, e.g. 'Taewoo Park · URP proposal voice'." },
+    "language": { "enum": ["ko", "en"] },
+    "source": {
+      "type": "object",
+      "required": ["build_files", "total_chars"],
+      "additionalProperties": false,
+      "properties": {
+        "build_files": { "type": "array", "items": { "type": "string" } },
+        "total_chars": { "type": "integer", "minimum": 0 },
+        "note": { "type": "string", "description": "e.g. 'built from a single 36k-char document; some axes advisory'." }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "description": "target metric bands, derived from quant_profile, baked verbatim into the emitted style_metrics.py. Keys mirror quant_profile paths; each is a [min,max] band, a {min} floor, or a {max} ceiling.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "min": { "type": "number" },
+          "max": { "type": "number" },
+          "target": { "type": "number" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "dimensions": {
+      "type": "array",
+      "description": "synthesized, deduped axis rules — same shape as dimension_profile entries, minus the transient sample_support bookkeeping.",
+      "items": {
+        "type": "object",
+        "required": ["axis_group", "rules"],
+        "properties": {
+          "axis_group": { "type": "string" },
+          "summary": { "type": "string" },
+          "rules": { "type": "array", "items": { "type": "object" } },
+          "strictness": { "enum": ["strict", "advisory"] }
+        }
+      }
+    },
+    "ironclad": {
+      "const": true,
+      "description": "always true — the meaning-invariance covenant (references/ironclad.md) is injected into every emitted skill regardless of the author's own style."
+    },
+    "confidence": {
+      "type": "object",
+      "required": ["overall"],
+      "additionalProperties": false,
+      "properties": {
+        "overall": { "enum": ["high", "medium", "low"] },
+        "weak_axes": { "type": "array", "items": { "type": "string" }, "description": "axis_groups shipped as advisory; surfaced in the emitted skill's CONFIDENCE note." }
+      }
+    },
+    "examples": {
+      "type": "array",
+      "description": "canonical before/after pairs chosen for the emitted skill's references/examples.md.",
+      "items": {
+        "type": "object",
+        "required": ["before", "after"],
+        "properties": {
+          "before": { "type": "string" },
+          "after": { "type": "string" },
+          "axis": { "type": "string" }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": ["schema_version", "maker_version"],
+      "properties": {
+        "schema_version": { "const": "1.0" },
+        "maker_version": { "type": "string" }
+      }
+    }
+  }
+}

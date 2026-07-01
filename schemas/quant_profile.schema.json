@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/TaewoooPark/personal-humanizer-maker/schemas/quant_profile.schema.json",
+  "title": "quant_profile",
+  "description": "Deterministic quantitative style fingerprint emitted by scripts/profile_corpus.py from one or more sample documents. Language-parametrized (ko/en). Distributions, not verdicts — the emitter turns these into the target skill's metric bands.",
+  "type": "object",
+  "required": ["language", "corpus", "metrics", "meta"],
+  "additionalProperties": false,
+  "properties": {
+    "language": { "enum": ["ko", "en"] },
+    "corpus": {
+      "type": "object",
+      "required": ["files", "total_chars", "n_sentences", "n_paragraphs"],
+      "additionalProperties": false,
+      "properties": {
+        "files": { "type": "array", "items": { "type": "string" } },
+        "total_chars": { "type": "integer", "minimum": 0 },
+        "n_sentences": { "type": "integer", "minimum": 0 },
+        "n_paragraphs": { "type": "integer", "minimum": 0 },
+        "thin": { "type": "boolean", "description": "true when corpus is below the reliable-sample threshold; downstream confidence must degrade." }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Seven axis-group measurements. Each value is a scalar or a small stats object {mean,median,p90,max,stdev}. Language-specific keys may be null when N/A for the language.",
+      "required": ["sentence", "ending", "lexical", "cohesion", "stance", "figuration", "formatting"],
+      "properties": {
+        "sentence": {
+          "type": "object",
+          "description": "Sentence architecture: length distribution, long-sentence ratio, clause-chaining density, rhythm (length variance).",
+          "properties": {
+            "len_mean": { "type": "number" },
+            "len_median": { "type": "number" },
+            "len_p90": { "type": "number" },
+            "len_max": { "type": "number" },
+            "len_stdev": { "type": "number" },
+            "long_ratio_80": { "type": "number", "description": "% of sentences >= 80 chars (ko) / >= 25 words (en)." },
+            "clause_chain_density": { "type": "number", "description": "subordinate-connective joins per sentence (ko: 연결어미; en: subordinators + comma-clauses)." }
+          }
+        },
+        "ending": {
+          "type": "object",
+          "description": "Ending register & modality. ko: 종결어미 분포·평서 ―다체 비율·가능/전망 화법·구어체 검출. en: declarative/interrogative mix, active/passive, contraction rate.",
+          "properties": {
+            "declarative_ratio": { "type": "number" },
+            "hedge_projection_ratio": { "type": "number", "description": "share of endings using possibility/projection modality (ko: ~수 있다/~로 보인다; en: may/could/appears)." },
+            "spoken_count": { "type": "integer", "description": "colloquial/honorific endings detected (ko: 요/죠/습니다; en: contractions in formal prose)." },
+            "distribution": { "type": "object", "additionalProperties": { "type": "integer" } }
+          }
+        },
+        "lexical": {
+          "type": "object",
+          "description": "Lexical register: Sino-Korean/Latinate density, jargon-gloss frequency, vocabulary richness, intensifier budget.",
+          "properties": {
+            "register_density": { "type": "number", "description": "ko: 한자어 밀도; en: Latinate/formal-word ratio." },
+            "gloss_count": { "type": "integer", "description": "inline glosses like 한글(English, 약어) / term (gloss)." },
+            "type_token_ratio": { "type": "number" },
+            "intensifier_density": { "type": "number" }
+          }
+        },
+        "cohesion": {
+          "type": "object",
+          "description": "Cohesion & argument flow: connective density and the transition/juxtaposition/convergence balance.",
+          "properties": {
+            "connective_density": { "type": "number" },
+            "transition_markers": { "type": "integer", "description": "reversal markers (ko: 그러나/그런데; en: however/yet)." },
+            "juxtaposition_markers": { "type": "integer", "description": "ko: 한편/동시에/예컨대; en: meanwhile/for instance." },
+            "convergence_markers": { "type": "integer", "description": "ko: 결국/궁극적으로; en: ultimately/in the end." }
+          }
+        },
+        "stance": {
+          "type": "object",
+          "description": "Stance & voice: passive/nominalization rate, self-reference form, evaluation/emphasis density.",
+          "properties": {
+            "passive_nominalization_rate": { "type": "number" },
+            "self_reference_count": { "type": "integer", "description": "formal self-reference (ko: 본 연구/본 글; en: this work/this study)." },
+            "first_person_count": { "type": "integer", "description": "exposed first person (ko: 나/저/우리; en: I/we)." },
+            "evaluation_density": { "type": "number", "description": "significance-marking phrases per 1k chars (ko: ~의 핵심이다; en: is central to)." }
+          }
+        },
+        "figuration": {
+          "type": "object",
+          "description": "Figurative/rhetorical budget.",
+          "properties": {
+            "metaphor_markers": { "type": "integer" },
+            "rhetorical_intensity": { "type": "number" }
+          }
+        },
+        "formatting": {
+          "type": "object",
+          "description": "Formatting habits: paragraph length, list/heading usage, emoji, punctuation signature, citation style, structural error signals.",
+          "properties": {
+            "para_len_mean": { "type": "number" },
+            "bullet_ratio": { "type": "number" },
+            "heading_density": { "type": "number" },
+            "emoji_count": { "type": "integer" },
+            "punct_signature": { "type": "object", "additionalProperties": { "type": "number" } },
+            "citation_style": { "type": "string", "description": "detected inline-citation convention (e.g. wikilink [[N. title]], bracket [N], footnote, none)." },
+            "wikilink_error_count": { "type": "integer", "description": "malformed ]]] etc." }
+          }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": ["schema_version"],
+      "properties": {
+        "schema_version": { "const": "1.0" },
+        "profiler_version": { "type": "string" }
+      }
+    }
+  }
+}
