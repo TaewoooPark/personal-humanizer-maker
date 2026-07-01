@@ -1,0 +1,96 @@
+{
+  "profile_name": "taewoo-urp",
+  "display_name": "박태우 · URP 연구계획서 문체",
+  "language": "ko",
+  "source": {
+    "build_files": ["URP_Plan.md"],
+    "total_chars": 17719,
+    "note": "seed reconstruction of personal_humanize (S1–S8 / A1–A3) — the self-reproduction fixture for the emitter."
+  },
+  "baseline": {
+    "sentence.len_mean": { "min": 70, "max": 115, "note": "만연체 평균 길이대" },
+    "sentence.long_ratio_80": { "min": 45, "note": "장문 비율" },
+    "sentence.len_max": { "max": 245, "note": "과윤문 방지 상한" },
+    "sentence.clause_chain_density": { "min": 0.4, "note": "종속절 직렬" },
+    "ending.declarative_ratio": { "min": 0.9, "note": "―다체" },
+    "ending.spoken_count": { "max": 0, "note": "구어/하십시오체 금지" },
+    "lexical.gloss_count": { "min": 1, "note": "전문용어 영문 병기" },
+    "stance.self_reference_count": { "min": 1, "note": "격식 자기지칭" },
+    "stance.passive_nominalization_rate": { "min": 0.3, "note": "현상 중심 서술" }
+  },
+  "dimensions": [
+    {
+      "axis_group": "sentence_architecture",
+      "summary": "짧은 단문을 종속절로 엮는 만연체. 평균 80–100자, 상한 ~240자.",
+      "strictness": "strict",
+      "rules": [
+        { "id": "SA1", "statement": "짧은 단문 2~3개는 `―만큼/―(으)므로/―기에/―는바/―에 따라`로 한 문장에 엮어 평균 80–100자로 늘인다. 단 한 문장 ≤ 240자, 주어-서술 호응 유지.", "strictness": "strict" }
+      ]
+    },
+    {
+      "axis_group": "register_modality",
+      "summary": "평서 ―다체로 통일하고 단정보다 가능·전망 화법을 띄운다.",
+      "strictness": "strict",
+      "rules": [
+        { "id": "RM1", "statement": "모든 종결을 평서 ―다체로 통일한다. 구어체·하십시오체(~요/~습니다)는 쓰지 않는다.", "strictness": "strict" },
+        { "id": "RM2", "statement": "단정보다 `~할 수 있다/~로 보인다/~을 기대할 수 있다`로 가능·전망을 띄운다.", "strictness": "strict" }
+      ]
+    },
+    {
+      "axis_group": "lexical_register",
+      "summary": "전문용어를 첫 등장에 영문 병기하고, 의고적 한자어·부사로 격을 높인다(절제).",
+      "strictness": "strict",
+      "rules": [
+        { "id": "LR1", "statement": "전문용어·고유개념은 첫 등장 시 `한글(English, 약어)`로 병기하고 이후 한글 또는 약어로 통일한다.", "strictness": "strict" },
+        { "id": "LR2", "statement": "적시에 `마침내·비로소·지극히·비단·과언이 아니다`류 의고 부사를 쓰되 문단당 1~2개로 절제한다.", "strictness": "advisory" }
+      ]
+    },
+    {
+      "axis_group": "cohesion_argument",
+      "summary": "正-反-合으로 논점을 전개하고 전환→병치→수렴의 접속 리듬으로 단락을 착지한다.",
+      "strictness": "strict",
+      "rules": [
+        { "id": "CA1", "statement": "한 논점을 (주장) → (그러나: 한계·반론) → (재해석) → (결국/궁극적으로: 종합)으로 순서·연결만 재배열한다. 사실은 그대로 둔다.", "strictness": "strict" },
+        { "id": "CA2", "statement": "반전(그러나) → 병치(한편·예컨대) → 수렴(결국)의 리듬으로 엮고, 한 단락은 수렴 접속으로 착지한다.", "strictness": "strict" },
+        { "id": "CA3", "statement": "배경·개념 단락은 마지막 문장에서 핵심 주장/본 연구로 환원한다 — 새 사실 없이 기존 주장만 재진술.", "strictness": "strict" }
+      ]
+    },
+    {
+      "axis_group": "stance_voice",
+      "summary": "피동·명사화로 현상 중심 서술, 격식 자기지칭, 단락 끝 평가·의의 부각.",
+      "strictness": "strict",
+      "rules": [
+        { "id": "SV1", "statement": "행위자보다 현상을 주어로: `측정한다→측정된다`, `구현하는 것→구현`처럼 피동·명사화로 기술한다.", "strictness": "strict" },
+        { "id": "SV2", "statement": "자기지칭은 `본 연구·본 글·본 학부생`으로 하고 나/우리 등 1인칭 노출을 피한다.", "strictness": "strict" },
+        { "id": "SV3", "statement": "중립 나열로 끝내지 말고 의의를 한 마디로 박는다: `~의 핵심이다/중요한 단초/~의 원점`. 단 과장 도배 금지.", "strictness": "strict" }
+      ]
+    },
+    {
+      "axis_group": "figuration",
+      "summary": "절제된 은유 허용 — 사실을 왜곡하지 않는 선에서만.",
+      "strictness": "advisory",
+      "rules": [
+        { "id": "FG1", "statement": "`가능성의 지평을 열다/원점이 된다`류 절제된 은유를 허용하되 사실을 왜곡하지 않는 선에서만 쓴다.", "strictness": "advisory" }
+      ]
+    },
+    {
+      "axis_group": "formatting",
+      "summary": "산문 문단 위주, 불릿·이모지 없음. 인용 표기는 원형 보존.",
+      "strictness": "strict",
+      "rules": [
+        { "id": "FM1", "statement": "정보를 불릿으로 쪼개지 않고 산문 문단으로 서술한다.", "strictness": "advisory" },
+        { "id": "FM2", "statement": "인용 표기(`[[N. 제목]]`)는 원형 보존한다 — 형식 변경·이동·삭제 금지(철칙 §0).", "strictness": "strict" }
+      ]
+    }
+  ],
+  "ironclad": true,
+  "confidence": { "overall": "high", "weak_axes": [] },
+  "examples": [
+    {
+      "axis": "sentence_architecture",
+      "before": "자구벽은 정보 저장 단위다. 그래서 차세대 소자의 핵심이다.",
+      "after": "자성 나노와이어 내에서 서로 다른 자화 영역을 가르는 경계인 자구벽은 그 자체로 정보를 저장하는 단위가 될 수 있는 만큼, 차세대 스핀트로닉스 소자의 핵심으로 주목받는다."
+    }
+  ],
+  "meta": { "schema_version": "1.0", "maker_version": "seed-recon" }
+}

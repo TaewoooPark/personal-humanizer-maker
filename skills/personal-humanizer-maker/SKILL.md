@@ -65,7 +65,7 @@ humanize-<이름>/ 스킬 패키지
 | 계약 스키마 | `schemas/*.schema.json` | ✅ (M0) |
 | 정량 프로파일러 | `scripts/profile_corpus.py` | ✅ (M1) |
 | taxonomy 레퍼런스 | `references/taxonomy.{ko,en}.md` 외 | ✅ (M2) |
-| 스킬 방출기 | `scripts/emit_skill.py` + `templates/*` | ⏳ (M3) |
+| 스킬 방출기 | `scripts/emit_skill.py` + `templates/*` | ✅ (M3) |
 | 다중 에이전트 오케스트레이션 | 본 SKILL.md 상세 절 | ⏳ (M4) |
 | 왕복검증 게이트 | `scripts/roundtrip_check.py` | ⏳ (M5) |
 
