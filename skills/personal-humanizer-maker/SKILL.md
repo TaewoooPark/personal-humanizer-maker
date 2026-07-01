@@ -56,6 +56,38 @@ humanize-<이름>/ 스킬 패키지
 - **축별 confidence**: 근거 예문 수 기반. 저신뢰 축의 규칙은 `strict`가 아닌 `advisory`로 방출.
 - **왕복검증 게이트**: 방출 직후 중립화 홀드아웃에 스스로 적용해 (a) 기준선 밴드 수렴 (b) 의미 보존을 확인. 실패 시 재방출 1회, 그래도 실패면 `CONFIDENCE.md` 경고를 동봉해 배포한다. **과적합 스킬을 조용히 배포하지 않는다.**
 
+## 오케스트레이션 상세 (실행 절차)
+
+호출되면 아래 순서로 진행한다. **CODE 단계는 결정적, 에이전트 단계는 해석적**이다.
+
+**0. 입력 수집.** 언어(ko/en)를 확정하고, 샘플 문서 경로(들) + `profile_name`(슬러그) + `display_name`을 받는다. 얇으면(임계 미만) 사용자에게 알린다.
+
+**1. 정량 프로파일 (CODE).**
+```bash
+python3 scripts/profile_corpus.py --lang <ko|en> <sample...> -o runs/<name>/quant_profile.json
+```
+
+**2. 축별 전문 분석가 fan-out (다중 에이전트).** 7개 축(`sentence_architecture, register_modality, lexical_register, cohesion_argument, stance_voice, figuration, formatting`)마다 서브에이전트 1명을 **병렬** 기동한다. 각 에이전트에 주는 프롬프트:
+
+> 당신은 **<axis>** 축 전문 분석가다. 다음을 읽어라: (a) `references/taxonomy.<lang>.md`의 해당 축 절, (b) 저자 샘플 원문, (c) `quant_profile.json`의 해당 축 슬라이스. 그리고 이 저자가 그 축을 어떻게 다루는지 `dimension_profile` JSON(스키마 `schemas/dimension_profile.schema.json`) 하나로 내라. 포함할 것 — `observations`(근거와 함께), `confidence`(근거 예문 수 기반: ≥8 high / 3–7 medium / <3 low), 재작성 스킬용 `rules`(저자 관측값으로 수치를 채운 명령문), **원문에서 그대로 뽑은** before/after `exemplars`(after=저자 실제 문장, before=같은 뜻의 밋밋한 패러프레이즈). **축을 발명하지 말고 taxonomy 프레임을 채워라. 내용·사실은 네 관심이 아니다 — 문체의 형태만.** 근거가 없는 특성은 규칙으로 만들지 마라.
+
+각 에이전트 산출을 `runs/<name>/dims/<axis>.json`으로 저장한다. (Workflow 사용 가능 시 `parallel(7 agents)`, 아니면 Agent 툴 7개 동시 호출.)
+
+**3. 조립 (CODE).** 기준선 밴드는 **LLM이 아니라 코드가** quant에서 결정적으로 도출한다(재현성).
+```bash
+python3 scripts/build_profile.py --quant runs/<name>/quant_profile.json --dims runs/<name>/dims \
+  --name <name> --display "<display_name>" -o runs/<name>/style_profile.json
+```
+
+**4. 방출 (CODE).**
+```bash
+python3 scripts/emit_skill.py runs/<name>/style_profile.json -o ~/.claude/skills/humanize-<name>
+```
+
+**5. 왕복검증 게이트 (CODE+에이전트, M5).** 방출 직후 중립화 홀드아웃에 스스로 적용해 기준선 수렴 + 의미 보존을 확인한다. 실패 시 밴드 완화·저신뢰 축 강등·재방출 1회, 그래도 실패면 `CONFIDENCE.md`를 동봉한다.
+
+> **선택적 종합 에이전트.** 축 산출이 서로 충돌하거나(예: 어휘 축과 수사 축이 상반된 규칙) 예문이 과할 때, `build_profile.py` 전에 종합 에이전트로 dims를 정리해도 된다. 기본 경로는 코드 병합으로 충분하다.
+
 ## 구현 상태
 
 > 이 저장소는 마일스톤별로 커밋·릴리스된다. 각 컴포넌트의 현재 상태:
@@ -66,7 +98,8 @@ humanize-<이름>/ 스킬 패키지
 | 정량 프로파일러 | `scripts/profile_corpus.py` | ✅ (M1) |
 | taxonomy 레퍼런스 | `references/taxonomy.{ko,en}.md` 외 | ✅ (M2) |
 | 스킬 방출기 | `scripts/emit_skill.py` + `templates/*` | ✅ (M3) |
-| 다중 에이전트 오케스트레이션 | 본 SKILL.md 상세 절 | ⏳ (M4) |
+| 프로파일 조립기 | `scripts/build_profile.py` | ✅ (M4) |
+| 다중 에이전트 오케스트레이션 | 본 SKILL.md 상세 절 | ✅ (M4) |
 | 왕복검증 게이트 | `scripts/roundtrip_check.py` | ⏳ (M5) |
 
 ## 계약 (schemas/)
