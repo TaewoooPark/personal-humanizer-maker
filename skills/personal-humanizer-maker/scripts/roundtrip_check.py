@@ -133,8 +133,9 @@ def main():
     ap = argparse.ArgumentParser(description="Round-trip convergence gate for an emitted personal humanizer.")
     ap.add_argument("docs", nargs="+", help="evaluation document(s): held-out author text or a humanized output")
     ap.add_argument("--profile", required=True, help="style_profile.json to test against")
-    ap.add_argument("--threshold", type=float, default=1.0,
-                    help="minimum strict-band pass rate to count as converged (default 1.0 = all)")
+    ap.add_argument("--threshold", type=float, default=0.85,
+                    help="minimum strict-band pass rate to count as converged (default 0.85; "
+                         "a single-doc build rarely nails every band on every held-out doc)")
     ap.add_argument("--relax", metavar="OUT", help="on divergence, write a widened profile here")
     args = ap.parse_args()
 

@@ -52,9 +52,10 @@ def derive_baseline(q):
         w = max(0.15 * v, 0.5 * s.get("len_stdev", 0)) * widen
         b["sentence.len_mean"] = {"min": int(round(v - w)), "max": int(round(v + w)),
                                   "note": "mean sentence length band"}
-    # long-sentence ratio — floor (characteristic "more")
-    if s.get("long_ratio_80", 0) >= 10:
-        b["sentence.long_ratio_80"] = {"min": rnd(0.75 * s["long_ratio_80"], 0),
+    # long-sentence ratio — floor (characteristic "more"); loose, this varies across a
+    # single author's docs, so 0.6x avoids over-tight bands on a one-doc build
+    if s.get("long_ratio_80", 0) >= 15:
+        b["sentence.long_ratio_80"] = {"min": rnd(0.6 * s["long_ratio_80"], 0),
                                        "note": "long-sentence ratio floor"}
     # clause chaining — floor
     if s.get("clause_chain_density", 0) >= 0.3:
@@ -78,7 +79,7 @@ def derive_baseline(q):
 
     # lexical
     lx = m["lexical"]
-    if lx.get("gloss_count", 0) >= 3:
+    if lx.get("gloss_count", 0) >= 8:
         b["lexical.gloss_count"] = {"min": 1, "note": "term-glossing is habitual -> require presence"}
     if lx.get("register_density", 0) >= 5:
         b["lexical.register_density"] = {"min": rnd(0.6 * lx["register_density"]),
