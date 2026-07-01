@@ -50,12 +50,38 @@ def strip_citations(text):
 
 
 def strip_markdown(text):
-    text = re.sub(r"```.*?```", " ", text, flags=re.S)    # fenced code
-    text = re.sub(r"^\s{0,3}#{1,6}\s.*$", "", text, flags=re.M)  # headings
-    text = re.sub(r"`[^`]*`", " ", text)                  # inline code
+    """Reduce Markdown to a clean PROSE stream: drop non-prose lines (headings, list
+    items, table rows, images) and non-prose blocks (fenced code, math), so tables and
+    equations aren't miscounted as gigantic sentences. Paragraph breaks are preserved."""
+    text = re.sub(r"```.*?```", " ", text, flags=re.S)     # fenced code
+    text = re.sub(r"~~~.*?~~~", " ", text, flags=re.S)
+    text = re.sub(r"<!--.*?-->", " ", text, flags=re.S)    # html comments
+    text = re.sub(r"\$\$.*?\$\$", " ", text, flags=re.S)   # block math
+    text = re.sub(r"\\\[.*?\\\]", " ", text, flags=re.S)   # \[ ... \]
+    text = re.sub(r"\$[^$\n]{1,200}\$", " ", text)         # inline math
+    text = re.sub(r"\\\([^)\n]{1,200}\\\)", " ", text)     # \( ... \)
+
+    kept = []
+    for ln in text.splitlines():
+        s = ln.strip()
+        if not s:
+            kept.append("")                                 # keep paragraph breaks
+            continue
+        if re.match(r"#{1,6}\s", s):                        # heading
+            continue
+        if re.match(r"([-*+•]|\d+[.)])\s", s):              # list item
+            continue
+        if s.startswith("|") or re.match(r"\|?\s*:?-{3,}", s):  # table row / separator
+            continue
+        if re.match(r"!\[", s) or s.startswith("<img"):     # image
+            continue
+        s = re.sub(r"^>\s?", "", s)                          # blockquote marker
+        kept.append(s)
+    text = "\n".join(kept)
+
+    text = re.sub(r"`[^`]*`", " ", text)                    # inline code
     text = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", text)  # links/images -> text
-    text = re.sub(r"[*_]{1,3}", "", text)                 # emphasis marks
-    text = re.sub(r"^\s{0,3}>\s?", "", text, flags=re.M)  # blockquote marks
+    text = re.sub(r"[*_]{1,3}", "", text)                   # emphasis marks
     return text
 
 
@@ -145,19 +171,31 @@ CONFIG = {"ko": KO, "en": EN}
 
 
 def split_sentences(text, lang):
-    """Split into sentences on end punctuation. KO length is in characters, EN in words."""
-    chunks = re.split(r"(?<=[.!?…])\s+", text)
+    """Split into sentences WITHIN paragraphs (so a paragraph-less run of list rows or a
+    table can't merge into one mega-sentence). KO length is in characters, EN in words.
+    Segments must carry script-appropriate content (Hangul for ko, Latin for en)."""
     out = []
-    for c in chunks:
-        c = c.strip()
-        # keep only chunks with real sentence content
-        if lang == "ko":
-            if len(c) > 4:
-                out.append(c)
-        else:
-            if len(c.split()) >= 2:
-                out.append(c)
+    for para in re.split(r"\n\s*\n", text):
+        para = " ".join(para.split())          # collapse internal newlines/spaces
+        if not para:
+            continue
+        for c in re.split(r"(?<=[.!?…])\s+", para):
+            c = c.strip()
+            if not c:
+                continue
+            if lang == "ko":
+                if len(c) > 4 and re.search(r"[가-힣]", c):
+                    out.append(c)
+            else:
+                if len(c.split()) >= 2 and re.search(r"[A-Za-z]", c):
+                    out.append(c)
     return out
+
+
+def ko_is_declarative(s):
+    """True if a sentence ends on the plain declarative ―다 (ignoring trailing marks/quotes)."""
+    core = s.rstrip(".!?…\"'”’)） ")
+    return core.endswith("다")
 
 
 def sent_len(s, lang):
@@ -179,17 +217,18 @@ def measure(text_raw, lang):
     long_ratio = round(100.0 * sum(x >= cfg["long_threshold"] for x in lengths) / n, 1) if n else 0.0
     clause_chain = round(count_any_re(clean, cfg["clause_conn"]) / n, 3) if n else 0.0
 
-    # ending / register
+    # ending / register — computed over PROSE sentences, not the raw body
     if lang == "ko":
-        decl = len(re.findall(r"다[.!?]", body))
-        ending_dist = Counter(m for m in re.findall(r"([가-힣]{1,3})다[.!?]", body))
+        decl = sum(1 for s in sents if ko_is_declarative(s))
+        ending_dist = Counter(m for s in sents
+                              for m in re.findall(r"([가-힣]{1,3})다[.!?…\"'”’)） ]*$", s))
         declarative_ratio = round(decl / n, 3) if n else 0.0
     else:
         decl = sum(1 for s in sents if s.rstrip().endswith("."))
         ending_dist = Counter()
         declarative_ratio = round(decl / n, 3) if n else 0.0
     hedge = count_any_re(clean, cfg["hedge"])
-    spoken = count_any_re(body, cfg["spoken"])
+    spoken = count_any_re(clean, cfg["spoken"])
 
     # lexical
     gloss = len(re.findall(r"\([A-Za-z][^)]{0,40}\)", body))
