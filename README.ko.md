@@ -109,6 +109,23 @@ bash setup/install.sh --target both
 
 순수 표준 라이브러리 Python 3.9+. 설치 시 venv·서드파티 패키지·네트워크가 필요 없다.
 
+<details>
+<summary><b>🤖 …아니면 그냥 AI 에이전트한테 설치를 시켜라</b></summary>
+
+<br>
+
+명령어 세 줄 치기도 귀찮다면 — 어차피 코딩 에이전트와 대화 중이잖은가. 레포 링크와 아래 프롬프트 중 하나를 Claude Code / Codex / Cursor에 붙여넣어라:
+
+**English**
+> Clone `https://github.com/TaewoooPark/personal-humanizer-maker` and run `bash setup/install.sh`, then confirm the `personal-humanizer-maker` skill is active in my session. Once it's in, build a personal humanizer from a sample of my writing.
+
+**한국어**
+> `https://github.com/TaewoooPark/personal-humanizer-maker` 클론해서 `bash setup/install.sh` 실행하고, `personal-humanizer-maker` 스킬이 활성화됐는지 확인해줘. 되면 내가 쓴 글 샘플로 개인 휴머나이저 하나 만들어줘.
+
+그렇다 — AI 티 안 나게 해주는 도구를, AI가 설치한다. 우리도 안다.
+
+</details>
+
 ## 사용법
 
 Claude Code나 Codex 안에서 자연어로 트리거하며 샘플을 건넨다:

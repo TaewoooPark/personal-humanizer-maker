@@ -1,110 +1,120 @@
 ---
 name: personal-humanizer-maker
-description: 사용자가 자신이 쓴 한국어/영어 샘플 문서를 넣으면, 그 글의 문체(문장 건축·종결 화법·어휘 층위·결속·태도·수사·포맷)와 논증 전개를 정량 프로파일러(코드)와 축별 전문 분석 에이전트(다중 에이전트)로 분해해, 그 사람만의 '개인 맞춤 휴머나이저 스킬'을 자동 생성하는 메타 스킬(스킬 공장). 산출물은 ~/.claude/skills/humanize-<이름>/ 에 떨어지는 독립 스킬 — SKILL.md + 저자 기준선이 baked-in 된 style_metrics.py + 본인 텍스트에서 뽑은 before/after 예문. 내용·사실·수치·인용·고유명사는 한 글자도 바꾸지 않는 '의미 불변' 철칙을 모든 생성물에 강제 주입한다. 트리거 — "내 문체로 다듬는 스킬 만들어줘", "이 글로 개인 휴머나이저 빌드", "personal humanizer maker", "내 voice 스킬 제작", "샘플 넣으면 내 문체 뽑아주는 거", "make a personal humanizer from my writing". 단일 글 윤문 자체는 이미 생성된 개인 스킬(예: personal_humanize)이 담당하고, 이 스킬은 그 개인 스킬을 '찍어내는' 공장이다.
+description: Feed in a Korean or English sample of your own writing, and this meta-skill (a skill factory) decomposes its style (sentence architecture, ending register, lexical register, cohesion, stance, figuration, formatting) and argument flow with a quantitative profiler (code) plus one specialist agent per axis (multi-agent), then auto-generates a personal humanizer skill just for you. The output is a standalone skill in ~/.claude/skills/humanize-<name>/ — SKILL.md + a style_metrics.py with the author's baselines baked in + before/after examples mined from the author's own text. A meaning-invariance covenant (never change facts, numbers, citations, or proper nouns) is injected into every generated skill. Triggers — "make a personal humanizer from my writing", "build a humanizer skill in my voice", "personal humanizer maker", "profile my writing style into a skill", "내 문체로 다듬는 스킬 만들어줘", "이 글로 개인 휴머나이저 빌드", "내 voice 스킬 제작", "샘플 넣으면 내 문체 뽑아주는 거". Rewriting a single text is the job of an already-generated personal skill (e.g. personal_humanize); THIS skill is the factory that stamps those personal skills out.
 ---
 
-# personal-humanizer-maker — 개인 문체 휴머나이저 스킬 공장
+# personal-humanizer-maker — a personal-voice humanizer skill factory
 
-샘플 문서 → **정량 프로파일 + 정성 분석** → 그 사람만의 윤문 스킬(`humanize-<이름>/`)을 자동 방출한다. 손으로 만든 한 사람의 인스턴스(예: `personal_humanize`)를, 아무 저자의 글에서 **자동으로 찍어내는** 파이프라인이다.
+Sample document → **quantitative profile + qualitative analysis** → a humanizer skill
+(`humanize-<name>/`) that is that person's alone, emitted automatically. It is the
+pipeline that stamps out — from any author's writing — the kind of hand-tuned instance a
+human would otherwise build by hand (e.g. `personal_humanize`).
 
-## 0. 철칙 — 의미 불변 (모든 생성물에 주입)
+## 0. The covenant — meaning is invariant (injected into every output)
 
-생성되는 모든 스킬은 `references/ironclad.md`의 철칙을 §0로 그대로 물려받는다. 저자의 문체가 무엇이든 **이 계약은 사람 무관하게 고정**이다.
+Every generated skill inherits the covenant in `references/ironclad.md` as its §0.
+Whatever the author's style, **this contract is fixed, author-independent**.
 
-- **사실·수치·단위·연도·인명·고유명사·인과·순서**의 의미는 한 글자도 바꾸지 않는다.
-- **인용·링크·각주는 원형 보존.** 형식 변경·이동·삭제 금지.
-- **새 주장·새 근거·새 인용 금지.** 없던 사실을 만들지 않는다.
-- **과윤문 금지.** 바꾸는 것은 표현·리듬·문장 결합·문단 내 배열뿐.
+- **Facts, numbers, units, years, names, proper nouns, causality, and order** never change — not by a single token.
+- **Citations, links, and footnotes are preserved verbatim.** No reformatting, moving, or deleting.
+- **No new claims, evidence, or citations.** Invent nothing that wasn't there.
+- **No over-editing.** Only phrasing, rhythm, sentence joining, and within-paragraph arrangement change.
 
-## 세 층 분리 (코드 · 레퍼런스 · LLM)
+## Three layers (code · reference · LLM)
 
-| 층 | 담당 | 산출물 |
+| Layer | Does | Artifacts |
 |---|---|---|
-| **CODE** (결정적, stdlib-only) | 정량 프로파일러 · 스킬 방출기 · 왕복 검증기 | `scripts/profile_corpus.py`, `scripts/emit_skill.py`, `scripts/roundtrip_check.py` |
-| **REFERENCE** (정적 지식) | style-dimension taxonomy(ko/en) · 신호↔축 매핑 · 철칙 · 템플릿 | `references/taxonomy.{ko,en}.md`, `references/signal-map.md`, `references/ironclad.md`, `templates/*` |
-| **LLM / 다중 에이전트** (해석) | 축별 전문 분석가 · 종합기 · 내용충실도 감사관 | 아래 오케스트레이션 |
+| **CODE** (deterministic, stdlib-only) | quantitative profiler · skill emitter · round-trip checker | `scripts/profile_corpus.py`, `scripts/emit_skill.py`, `scripts/roundtrip_check.py`, `scripts/build_profile.py` |
+| **REFERENCE** (static knowledge) | style-dimension taxonomy (ko/en) · signal→axis map · covenant · templates | `references/taxonomy.{ko,en}.md`, `references/signal-map.md`, `references/ironclad.md`, `templates/*` |
+| **LLM / multi-agent** (interpretive) | axis specialists · synthesizer · fidelity auditor | orchestration below |
 
-## 파이프라인
+## Pipeline
 
 ```
-샘플문서 + 언어(ko/en)
+sample doc + language (ko/en)
    │  [CODE] profile_corpus.py
    ▼
-quant_profile.json  (7축 분포: 문장길이·종결분포·접속밀도·피동율·병기빈도·포맷…)
-   │  [MULTI-AGENT] 축별 전문 분석가 fan-out  ← references/taxonomy.{lang}.md
+quant_profile.json  (7-axis distributions: sentence length · ending mix · connective density · passive rate · gloss rate · formatting …)
+   │  [MULTI-AGENT] one specialist agent per axis, fanned out  ← references/taxonomy.{lang}.md
    ▼
-dimension_profiles[]  (축별 값 + confidence + 규칙 + 본인 예문)
+dimension_profiles[]  (per-axis value + confidence + rules + exemplars mined from the author)
    │  [MULTI-AGENT] synthesizer (barrier)
    ▼
-style_profile.json  (통합 규칙 + 보정 기준선 + 대표 예문) + style_profile.md
-   │  [CODE] emit_skill.py + templates  ← references/ironclad.md (철칙 주입)
+style_profile.json  (unified rules + calibrated baselines + canonical examples) + style_profile.md
+   │  [CODE] emit_skill.py + templates  ← references/ironclad.md (covenant injected)
    ▼
-humanize-<이름>/ 스킬 패키지
-   │  [CODE+AGENT] roundtrip_check.py + 충실도 감사   ← 전자동 안전핀
+humanize-<name>/ skill package
+   │  [CODE+AGENT] roundtrip_check.py + fidelity audit  ← automatic safety gate
    ▼
-  PASS → 배포 / FAIL → 밴드 완화·저신뢰 축 강등·재방출 1회 → CONFIDENCE 경고 동봉
+  PASS → ship / FAIL → widen bands · demote low-confidence axes · re-emit once → ship with CONFIDENCE note
 ```
 
-## 언어 선택 (ko/en)
+## Language selection (ko/en)
 
-호출 시작 시 **한국어/영어**를 선택한다. 선택은 `taxonomy.{lang}.md`, 프로파일러의 언어 모듈, 방출 스킬의 언어 모드를 함께 고른다. 공유 골격 + 언어별 모듈 구조라 3번째 언어 확장은 taxonomy 1개 + 프로파일러 모듈 1개 추가로 끝난다.
+At the start, pick **Korean or English**. That choice selects `taxonomy.{lang}.md`, the
+profiler's language module, and the emitted skill's language mode together. The shared
+skeleton + per-language module design means a third language is one taxonomy file plus one
+profiler module.
 
-## 전자동 모드의 안전장치 (사용자 검토 없음)
+## Automatic-mode safety (no human review)
 
-검토자가 없으므로 과적합을 코드로 방어한다.
-- **얇은 코퍼스 검사**: 총 글자수가 임계 미만이면 confidence를 강등하고 밴드를 넓힌다.
-- **축별 confidence**: 근거 예문 수 기반. 저신뢰 축의 규칙은 `strict`가 아닌 `advisory`로 방출.
-- **왕복검증 게이트**: 방출 직후 중립화 홀드아웃에 스스로 적용해 (a) 기준선 밴드 수렴 (b) 의미 보존을 확인. 실패 시 재방출 1회, 그래도 실패면 `CONFIDENCE.md` 경고를 동봉해 배포한다. **과적합 스킬을 조용히 배포하지 않는다.**
+With no reviewer in the loop, overfitting is defended in code.
+- **Thin-corpus check**: below the character threshold, confidence is demoted and bands widen.
+- **Per-axis confidence**: based on exemplar count. Low-confidence axes ship as `advisory`, not `strict`.
+- **Round-trip gate**: right after emit, the skill is applied to a neutralized held-out text to confirm (a) the baseline bands converge and (b) meaning is preserved. On failure it re-emits once; if it still fails, it ships with a `CONFIDENCE.md` warning. **An overfit skill is never shipped silently.**
 
-## 오케스트레이션 상세 (실행 절차)
+## Orchestration procedure (how to run)
 
-호출되면 아래 순서로 진행한다. **CODE 단계는 결정적, 에이전트 단계는 해석적**이다.
+When invoked, proceed in order. **CODE steps are deterministic; agent steps are interpretive.**
 
-**0. 입력 수집.** 언어(ko/en)를 확정하고, 샘플 문서 경로(들) + `profile_name`(슬러그) + `display_name`을 받는다. 얇으면(임계 미만) 사용자에게 알린다.
+**0. Gather input.** Confirm the language (ko/en), and take the sample path(s) + a
+`profile_name` (slug) + a `display_name`. Warn if the corpus is thin (below threshold).
 
-**1. 정량 프로파일 (CODE).**
+**1. Quantitative profile (CODE).**
 ```bash
 python3 scripts/profile_corpus.py --lang <ko|en> <sample...> -o runs/<name>/quant_profile.json
 ```
 
-**2. 축별 전문 분석가 fan-out (다중 에이전트).** 7개 축(`sentence_architecture, register_modality, lexical_register, cohesion_argument, stance_voice, figuration, formatting`)마다 서브에이전트 1명을 **병렬** 기동한다. 각 에이전트에 주는 프롬프트:
+**2. Axis-specialist fan-out (multi-agent).** Launch one subagent **in parallel** per axis
+(`sentence_architecture, register_modality, lexical_register, cohesion_argument, stance_voice, figuration, formatting`). Prompt each with:
 
-> 당신은 **<axis>** 축 전문 분석가다. 다음을 읽어라: (a) `references/taxonomy.<lang>.md`의 해당 축 절, (b) 저자 샘플 원문, (c) `quant_profile.json`의 해당 축 슬라이스. 그리고 이 저자가 그 축을 어떻게 다루는지 `dimension_profile` JSON(스키마 `schemas/dimension_profile.schema.json`) 하나로 내라. 포함할 것 — `observations`(근거와 함께), `confidence`(근거 예문 수 기반: ≥8 high / 3–7 medium / <3 low), 재작성 스킬용 `rules`(저자 관측값으로 수치를 채운 명령문), **원문에서 그대로 뽑은** before/after `exemplars`(after=저자 실제 문장, before=같은 뜻의 밋밋한 패러프레이즈). **축을 발명하지 말고 taxonomy 프레임을 채워라. 내용·사실은 네 관심이 아니다 — 문체의 형태만.** 근거가 없는 특성은 규칙으로 만들지 마라.
+> You are the **<axis>** specialist. Read: (a) the <axis> section of `references/taxonomy.<lang>.md`, (b) the author sample, (c) the <axis> slice of `quant_profile.json`. Emit one `dimension_profile` JSON (schema `schemas/dimension_profile.schema.json`) describing how this author handles the axis. Include — `observations` (with evidence), `confidence` (by exemplar count: ≥8 high / 3–7 medium / <3 low), `rules` for a rewriter (imperative, with the author's observed values filled in), and before/after `exemplars` copied **verbatim from the sample** (after = a real author sentence, before = a plainer same-meaning paraphrase). **Do not invent axes — fill the taxonomy frame. Facts/content are not your concern — only the shape of the style.** Do not manufacture a rule for a trait the author does not exhibit.
 
-각 에이전트 산출을 `runs/<name>/dims/<axis>.json`으로 저장한다. (Workflow 사용 가능 시 `parallel(7 agents)`, 아니면 Agent 툴 7개 동시 호출.)
+Save each agent's output to `runs/<name>/dims/<axis>.json`. (Use `parallel(7 agents)` when a Workflow is available, otherwise 7 concurrent Agent-tool calls.)
 
-**3. 조립 (CODE).** 기준선 밴드는 **LLM이 아니라 코드가** quant에서 결정적으로 도출한다(재현성).
+**3. Assemble (CODE).** Baseline bands are derived **by code, not the LLM**, from the quant profile (reproducibility).
 ```bash
 python3 scripts/build_profile.py --quant runs/<name>/quant_profile.json --dims runs/<name>/dims \
   --name <name> --display "<display_name>" -o runs/<name>/style_profile.json
 ```
 
-**4. 방출 (CODE).**
+**4. Emit (CODE).**
 ```bash
 python3 scripts/emit_skill.py runs/<name>/style_profile.json -o ~/.claude/skills/humanize-<name>
 ```
 
-**5. 왕복검증 게이트 (CODE+에이전트, M5).** 방출 직후 중립화 홀드아웃에 스스로 적용해 기준선 수렴 + 의미 보존을 확인한다. 실패 시 밴드 완화·저신뢰 축 강등·재방출 1회, 그래도 실패면 `CONFIDENCE.md`를 동봉한다.
+**5. Round-trip gate (CODE + agent).** Apply the fresh skill to a neutralized held-out
+text to confirm baseline convergence + meaning preservation. On failure, widen bands /
+demote low-confidence axes / re-emit once; if it still fails, ship with `CONFIDENCE.md`.
 
-> **선택적 종합 에이전트.** 축 산출이 서로 충돌하거나(예: 어휘 축과 수사 축이 상반된 규칙) 예문이 과할 때, `build_profile.py` 전에 종합 에이전트로 dims를 정리해도 된다. 기본 경로는 코드 병합으로 충분하다.
+> **Optional synthesizer agent.** When axis outputs conflict (e.g. the lexical and
+> figuration axes propose opposing rules) or exemplars are excessive, a synthesizer agent
+> may tidy the dims before `build_profile.py`. The default code-merge path is enough.
 
-## 구현 상태
+## Components
 
-> 이 저장소는 마일스톤별로 커밋·릴리스된다. 각 컴포넌트의 현재 상태:
-
-| 컴포넌트 | 파일 | 상태 |
+| Component | File | Role |
 |---|---|---|
-| 계약 스키마 | `schemas/*.schema.json` | ✅ (M0) |
-| 정량 프로파일러 | `scripts/profile_corpus.py` | ✅ (M1) |
-| taxonomy 레퍼런스 | `references/taxonomy.{ko,en}.md` 외 | ✅ (M2) |
-| 스킬 방출기 | `scripts/emit_skill.py` + `templates/*` | ✅ (M3) |
-| 프로파일 조립기 | `scripts/build_profile.py` | ✅ (M4) |
-| 다중 에이전트 오케스트레이션 | 본 SKILL.md 상세 절 | ✅ (M4) |
-| 왕복검증 게이트 | `scripts/roundtrip_check.py` | ✅ (M5) |
+| Contract schemas | `schemas/*.schema.json` | code↔agent glue |
+| Quantitative profiler | `scripts/profile_corpus.py` | 7-axis distributions → `quant_profile.json` |
+| Taxonomy references | `references/taxonomy.{ko,en}.md` + `signal-map.md` | per-axis rule frame + band derivation |
+| Profile assembler | `scripts/build_profile.py` | derive baselines + merge dims → `style_profile.json` |
+| Skill emitter | `scripts/emit_skill.py` + `templates/*` | `style_profile.json` → `humanize-<name>/` |
+| Round-trip gate | `scripts/roundtrip_check.py` | convergence check + relaxation |
 
-## 계약 (schemas/)
+## Contracts (schemas/)
 
-코드와 에이전트를 잇는 세 계약:
-- `quant_profile.schema.json` — 프로파일러 출력.
-- `dimension_profile.schema.json` — 축별 분석가 1인의 출력.
-- `style_profile.schema.json` — 종합기 출력, 방출기의 유일한 입력.
+The three contracts that join code and agents:
+- `quant_profile.schema.json` — the profiler's output.
+- `dimension_profile.schema.json` — one axis specialist's output.
+- `style_profile.schema.json` — the synthesizer's output, the emitter's sole input.

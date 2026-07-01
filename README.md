@@ -110,6 +110,23 @@ bash setup/install.sh --target both
 
 Pure standard-library Python 3.9+. No venv, no third-party packages, no network at install time.
 
+<details>
+<summary><b>🤖 …or just let an AI agent install it for you</b></summary>
+
+<br>
+
+Too busy to run three commands? You're already talking to a coding agent — make it earn its keep. Paste the repo link and one of these into Claude Code / Codex / Cursor:
+
+**English**
+> Clone `https://github.com/TaewoooPark/personal-humanizer-maker` and run `bash setup/install.sh`, then confirm the `personal-humanizer-maker` skill is active in my session. Once it's in, build a personal humanizer from a sample of my writing.
+
+**한국어**
+> `https://github.com/TaewoooPark/personal-humanizer-maker` 클론해서 `bash setup/install.sh` 실행하고, `personal-humanizer-maker` 스킬이 활성화됐는지 확인해줘. 되면 내가 쓴 글 샘플로 개인 휴머나이저 하나 만들어줘.
+
+Yes — the tool for not sounding like an AI, installed by an AI. We're aware.
+
+</details>
+
 ## Usage
 
 Inside Claude Code or Codex, trigger it in natural language and hand it a sample:
