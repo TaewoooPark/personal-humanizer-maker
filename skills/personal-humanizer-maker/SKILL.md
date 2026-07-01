@@ -100,7 +100,7 @@ python3 scripts/emit_skill.py runs/<name>/style_profile.json -o ~/.claude/skills
 | 스킬 방출기 | `scripts/emit_skill.py` + `templates/*` | ✅ (M3) |
 | 프로파일 조립기 | `scripts/build_profile.py` | ✅ (M4) |
 | 다중 에이전트 오케스트레이션 | 본 SKILL.md 상세 절 | ✅ (M4) |
-| 왕복검증 게이트 | `scripts/roundtrip_check.py` | ⏳ (M5) |
+| 왕복검증 게이트 | `scripts/roundtrip_check.py` | ✅ (M5) |
 
 ## 계약 (schemas/)
 
