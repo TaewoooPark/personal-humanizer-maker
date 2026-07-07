@@ -1,12 +1,26 @@
 ---
 name: personal-humanizer-maker
-description: Feed in a Korean or English sample of your own writing, and this meta-skill (a skill factory) decomposes its style (sentence architecture, ending register, lexical register, cohesion, stance, figuration, formatting) and argument flow with a quantitative profiler (code) plus one specialist agent per axis (multi-agent), then auto-generates a personal humanizer skill just for you. The output is a standalone skill in ~/.claude/skills/humanize-<name>/ — SKILL.md + a style_metrics.py with the author's baselines baked in + before/after examples mined from the author's own text. A meaning-invariance covenant (never change facts, numbers, citations, or proper nouns) is injected into every generated skill. Triggers — "make a personal humanizer from my writing", "build a humanizer skill in my voice", "personal humanizer maker", "profile my writing style into a skill", "내 문체로 다듬는 스킬 만들어줘", "이 글로 개인 휴머나이저 빌드", "내 voice 스킬 제작", "샘플 넣으면 내 문체 뽑아주는 거". Rewriting a single text is the job of an already-generated personal skill (e.g. personal_humanize); THIS skill is the factory that stamps those personal skills out.
+description: >-
+  Feed in a Korean or English sample of your own writing, and this meta-skill
+  (a skill factory) decomposes its style and argument flow with a quantitative
+  profiler plus one specialist agent per axis, then auto-generates a personal
+  humanizer skill. The output is a standalone humanize-NAME skill for the
+  current host: Claude Code emits under ~/.claude/skills, while Codex emits
+  under the Codex skill root. It includes SKILL.md, style_metrics.py with the
+  author's baselines baked in, and before/after examples mined from the
+  author's own text. A meaning-invariance covenant is injected into every
+  generated skill. Triggers — "make a personal humanizer from my writing",
+  "build a humanizer skill in my voice", "personal humanizer maker", "profile
+  my writing style into a skill", "내 문체로 다듬는 스킬 만들어줘", "이 글로 개인
+  휴머나이저 빌드", "내 voice 스킬 제작", "샘플 넣으면 내 문체 뽑아주는 거".
+  Rewriting a single text is the job of an already-generated personal skill;
+  THIS skill is the factory that stamps those personal skills out.
 ---
 
 # personal-humanizer-maker — a personal-voice humanizer skill factory
 
 Sample document → **quantitative profile + qualitative analysis** → a humanizer skill
-(`humanize-<name>/`) that is that person's alone, emitted automatically. It is the
+(`humanize-NAME/`) that is that person's alone, emitted automatically. It is the
 pipeline that stamps out — from any author's writing — the kind of hand-tuned instance a
 human would otherwise build by hand (e.g. `personal_humanize`).
 
@@ -43,7 +57,7 @@ dimension_profiles[]  (per-axis value + confidence + rules + exemplars mined fro
 style_profile.json  (unified rules + calibrated baselines + canonical examples) + style_profile.md
    │  [CODE] emit_skill.py + templates  ← references/ironclad.md (covenant injected)
    ▼
-humanize-<name>/ skill package
+humanize-NAME/ skill package
    │  [CODE+AGENT] roundtrip_check.py + fidelity audit  ← automatic safety gate
    ▼
   PASS → ship / FAIL → widen bands · demote low-confidence axes · re-emit once → ship with CONFIDENCE note
@@ -90,8 +104,11 @@ python3 scripts/build_profile.py --quant runs/<name>/quant_profile.json --dims r
 
 **4. Emit (CODE).**
 ```bash
-python3 scripts/emit_skill.py runs/<name>/style_profile.json -o ~/.claude/skills/humanize-<name>
+python3 scripts/emit_skill.py runs/<name>/style_profile.json --host auto
 ```
+`--host auto` emits to the active host's skill root: `~/.claude/skills` for Claude Code,
+`${CODEX_HOME:-~/.codex}/skills` for Codex. Use `--host claude`, `--host codex`, or `-o`
+to override explicitly.
 
 **5. Round-trip gate (CODE + agent).** Apply the fresh skill to a neutralized held-out
 text to confirm baseline convergence + meaning preservation. On failure, widen bands /
@@ -105,7 +122,7 @@ demote low-confidence axes / re-emit once; if it still fails, ship with `CONFIDE
 
 | Component | File | Role |
 |---|---|---|
-| Contract schemas | `schemas/*.schema.json` | code↔agent glue |
+| Contract schemas | `schemas/*.schema.json` | code↔agent glue; installed copies are bundled inside the skill |
 | Quantitative profiler | `scripts/profile_corpus.py` | 7-axis distributions → `quant_profile.json` |
 | Taxonomy references | `references/taxonomy.{ko,en}.md` + `signal-map.md` | per-axis rule frame + band derivation |
 | Profile assembler | `scripts/build_profile.py` | derive baselines + merge dims → `style_profile.json` |

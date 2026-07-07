@@ -2,7 +2,7 @@
 # install.sh — install the personal-humanizer-maker skill into a Claude Code / Codex host.
 #
 #   bash setup/install.sh                      # Claude Code (default) -> ~/.claude/skills
-#   bash setup/install.sh --target codex       # Codex               -> ~/.agents/skills
+#   bash setup/install.sh --target codex       # Codex               -> ~/.codex/skills (+ ~/.agents/skills mirror)
 #   bash setup/install.sh --target both
 #
 # Pure stdlib Python 3.9+ — no third-party deps, no venv, no network.
@@ -26,6 +26,8 @@ install_to() {
   mkdir -p "$dest_root"
   rm -rf "$dest"
   cp -R "$SKILL_SRC" "$dest"
+  cp -R "$REPO_ROOT/schemas" "$dest/schemas"
+  find "$dest" -name __pycache__ -type d -prune -exec rm -rf {} +
   echo "  installed -> $dest"
 }
 
@@ -40,7 +42,7 @@ PY
 case "$TARGET" in
   claude) install_to "$HOME/.claude/skills" ;;
   codex)  install_to "${CODEX_HOME:-$HOME/.codex}/skills" ; install_to "$HOME/.agents/skills" 2>/dev/null || true ;;
-  both)   install_to "$HOME/.claude/skills" ; install_to "$HOME/.agents/skills" ;;
+  both)   install_to "$HOME/.claude/skills" ; install_to "${CODEX_HOME:-$HOME/.codex}/skills" ; install_to "$HOME/.agents/skills" 2>/dev/null || true ;;
   *) echo "unknown target: $TARGET (use claude|codex|both)" >&2; exit 2 ;;
 esac
 

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Personal Humanizer Maker"
+  short_description: "Build a voice-matched humanizer skill"
+  default_prompt: "Use $personal-humanizer-maker to build a personal humanizer from my writing sample."
+
+policy:
+  allow_implicit_invocation: true

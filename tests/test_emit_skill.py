@@ -9,6 +9,7 @@ the emitted checker actually runs. Standard library only; exits non-zero on fail
     python3 tests/test_emit_skill.py
 """
 import json
+import os
 import py_compile
 import subprocess
 import sys
@@ -65,6 +66,17 @@ def main():
     check("PASS" in r.stdout or "WARN" in r.stdout or "FAIL" in r.stdout,
           "checker prints PASS/WARN/FAIL lines")
     check("의미 불변" in r.stdout, "checker prints the covenant caveat")
+
+    print("[host defaults] Codex output root")
+    codex_home = tmp / "codex-home"
+    env = dict(**os.environ, CODEX_HOME=str(codex_home))
+    subprocess.run([sys.executable, str(EMIT), str(SEED), "--host", "codex"],
+                   capture_output=True, text=True, check=True, env=env)
+    codex_out = codex_home / "skills" / "humanize-taewoo-urp"
+    check((codex_out / "SKILL.md").exists(), "--host codex emits under CODEX_HOME/skills")
+    codex_skill = (codex_out / "SKILL.md").read_text(encoding="utf-8")
+    check("${CODEX_HOME:-$HOME/.codex}/skills/humanize-taewoo-urp" in codex_skill,
+          "Codex self-check path rendered")
 
     print()
     if failures:

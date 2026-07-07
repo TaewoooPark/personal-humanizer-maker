@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 """emit_skill.py — turn a style_profile.json into a standalone personal-humanizer skill.
 
+    python3 emit_skill.py profile.json --host auto
+    python3 emit_skill.py profile.json --host codex
     python3 emit_skill.py profile.json -o ~/.claude/skills/humanize-taewoo
     python3 emit_skill.py profile.json --print        # preview SKILL.md only
 
@@ -67,6 +69,45 @@ AXIS_LABEL = {
 
 
 # ----------------------------------------------------------------- helpers
+def detect_host():
+    """Infer the host from the installed skill path; repo checkouts keep Claude legacy."""
+    root = os.path.realpath(MAKER_ROOT)
+    codex_root = os.path.realpath(os.path.join(
+        os.path.expanduser(os.environ.get("CODEX_HOME", "~/.codex")), "skills"))
+    agents_root = os.path.realpath(os.path.expanduser("~/.agents/skills"))
+    claude_root = os.path.realpath(os.path.expanduser("~/.claude/skills"))
+    if root == codex_root or root.startswith(codex_root + os.sep):
+        return "codex"
+    if root == agents_root or root.startswith(agents_root + os.sep):
+        return "codex"
+    if root == claude_root or root.startswith(claude_root + os.sep):
+        return "claude"
+    parts = root.split(os.sep)
+    if ".codex" in parts or ".agents" in parts:
+        return "codex"
+    if ".claude" in parts:
+        return "claude"
+    return "claude"
+
+
+def resolve_host(host):
+    return detect_host() if host == "auto" else host
+
+
+def skill_root(host):
+    if host == "codex":
+        return os.path.join(os.path.expanduser(os.environ.get("CODEX_HOME", "~/.codex")), "skills")
+    if host == "claude":
+        return os.path.expanduser("~/.claude/skills")
+    raise ValueError(f"unknown host: {host}")
+
+
+def selfcheck_root_expr(host):
+    if host == "codex":
+        return "${CODEX_HOME:-$HOME/.codex}/skills"
+    return "$HOME/.claude/skills"
+
+
 def voice_of(disp):
     """Trim a trailing '문체' so phrasings like '{voice}의 문체로' don't double up."""
     d = disp.strip()
@@ -184,26 +225,27 @@ def render_workflow(prof):
             "5. **Output.** Present only the rewritten text. Report change summaries or spotted factual errors separately, on request.")
 
 
-def render_selfcheck(prof, name):
+def render_selfcheck(prof, name, host):
     lang = prof["language"]
+    root = selfcheck_root_expr(host)
     if lang == "ko":
         return ("## 자가검증 스크립트\n\n"
                 "```bash\n"
-                f"python3 ~/.claude/skills/{name}/scripts/style_metrics.py <파일.md>\n"
-                f"cat 다듬은본문 | python3 ~/.claude/skills/{name}/scripts/style_metrics.py -\n"
+                f"python3 {root}/{name}/scripts/style_metrics.py <파일.md>\n"
+                f"cat 다듬은본문 | python3 {root}/{name}/scripts/style_metrics.py -\n"
                 "```\n\n"
                 "저자 기준선 밴드가 baked-in 되어 있다. 문체의 '형태'만 측정하며 내용은 평가하지 않는다. "
                 "**WARN이 곧 실패는 아니다** — 의미 불변(§0)을 어기면서까지 수치를 맞추지 말 것.")
     return ("## Self-check script\n\n"
             "```bash\n"
-            f"python3 ~/.claude/skills/{name}/scripts/style_metrics.py <file.md>\n"
-            f"cat rewritten | python3 ~/.claude/skills/{name}/scripts/style_metrics.py -\n"
+            f"python3 {root}/{name}/scripts/style_metrics.py <file.md>\n"
+            f"cat rewritten | python3 {root}/{name}/scripts/style_metrics.py -\n"
             "```\n\n"
             "The author's baseline bands are baked in. It measures the *shape* of style only, not content. "
             "**A WARN is not a failure** — never chase a number at the cost of the covenant (§0).")
 
 
-def build_skill_md(prof, name):
+def build_skill_md(prof, name, host="claude"):
     tmpl = open(os.path.join(TEMPLATES, "SKILL.md.tmpl"), encoding="utf-8").read()
     lang = prof["language"]
     disp = prof.get("display_name", prof["profile_name"])
@@ -226,7 +268,7 @@ def build_skill_md(prof, name):
         "{{CONFIDENCE}}": render_confidence(prof),
         "{{RULES}}": render_rules(prof),
         "{{WORKFLOW}}": render_workflow(prof),
-        "{{SELFCHECK}}": render_selfcheck(prof, name),
+        "{{SELFCHECK}}": render_selfcheck(prof, name, host),
     }
     out = tmpl
     for k, v in repl.items():
@@ -307,19 +349,22 @@ def build_examples_md(prof):
 def main():
     ap = argparse.ArgumentParser(description="Emit a standalone personal-humanizer skill from a style_profile.json.")
     ap.add_argument("profile", help="path to style_profile.json")
-    ap.add_argument("-o", "--out", help="output skill dir (default: ~/.claude/skills/humanize-<name>)")
+    ap.add_argument("--host", choices=("auto", "claude", "codex"), default="auto",
+                    help="default output host when --out is omitted (default: auto)")
+    ap.add_argument("-o", "--out", help="output skill dir (overrides --host)")
     ap.add_argument("--print", dest="preview", action="store_true", help="preview SKILL.md to stdout, write nothing")
     args = ap.parse_args()
 
     prof = load_profile(args.profile)
     name = f"humanize-{prof['profile_name']}"
-    skill_md = build_skill_md(prof, name)
+    host = resolve_host(args.host)
+    skill_md = build_skill_md(prof, name, host)
 
     if args.preview:
         print(skill_md)
         return
 
-    out = args.out or os.path.expanduser(f"~/.claude/skills/{name}")
+    out = args.out or os.path.join(skill_root(host), name)
     os.makedirs(os.path.join(out, "scripts"), exist_ok=True)
     os.makedirs(os.path.join(out, "references"), exist_ok=True)
 

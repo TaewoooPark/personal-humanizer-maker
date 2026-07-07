@@ -100,7 +100,7 @@ cd personal-humanizer-maker
 # Claude Code (기본) -> ~/.claude/skills
 bash setup/install.sh
 
-# Codex -> ~/.agents/skills
+# Codex -> ~/.codex/skills (+ ~/.agents/skills mirror)
 bash setup/install.sh --target codex
 
 # 둘 다
@@ -117,10 +117,10 @@ bash setup/install.sh --target both
 명령어 세 줄 치기도 귀찮다면 — 어차피 코딩 에이전트와 대화 중이잖은가. 레포 링크와 아래 프롬프트 중 하나를 Claude Code / Codex / Cursor에 붙여넣어라:
 
 **English**
-> Clone `https://github.com/TaewoooPark/personal-humanizer-maker` and run `bash setup/install.sh`, then confirm the `personal-humanizer-maker` skill is active in my session. Once it's in, build a personal humanizer from a sample of my writing.
+> Clone `https://github.com/TaewoooPark/personal-humanizer-maker` and install it for this host (`bash setup/install.sh` in Claude Code, or `bash setup/install.sh --target codex` in Codex), then confirm the `personal-humanizer-maker` skill is active in my session. Once it's in, build a personal humanizer from a sample of my writing.
 
 **한국어**
-> `https://github.com/TaewoooPark/personal-humanizer-maker` 클론해서 `bash setup/install.sh` 실행하고, `personal-humanizer-maker` 스킬이 활성화됐는지 확인해줘. 되면 내가 쓴 글 샘플로 개인 휴머나이저 하나 만들어줘.
+> `https://github.com/TaewoooPark/personal-humanizer-maker` 클론해서 현재 호스트에 맞게 설치해줘(Claude Code면 `bash setup/install.sh`, Codex면 `bash setup/install.sh --target codex`). 그리고 `personal-humanizer-maker` 스킬이 활성화됐는지 확인해줘. 되면 내가 쓴 글 샘플로 개인 휴머나이저 하나 만들어줘.
 
 그렇다 — AI 티 안 나게 해주는 도구를, AI가 설치한다. 우리도 안다.
 
@@ -135,8 +135,9 @@ Claude Code나 Codex 안에서 자연어로 트리거하며 샘플을 건넨다:
 build a personal humanizer from this document I wrote
 ```
 
-시작 시 **한국어/영어** 하나만 물은 뒤 파이프라인을 돌리고, 방출된 스킬을
-`~/.claude/skills/humanize-<이름>/`에 떨어뜨린다. 이후로는 *그* 스킬로 아무 텍스트나 윤문한다:
+시작 시 **한국어/영어** 하나만 물은 뒤 파이프라인을 돌리고, 방출된 스킬을 현재 호스트의 스킬
+루트에 떨어뜨린다. Claude Code에서는 `~/.claude/skills/humanize-NAME/`, Codex에서는
+`${CODEX_HOME:-~/.codex}/skills/humanize-NAME/`이다. 이후로는 *그* 스킬로 아무 텍스트나 윤문한다:
 
 ```
 이 초안 내 문체로 다듬어줘
@@ -152,7 +153,8 @@ humanize this draft in my voice
 방출된 스킬은 손으로 만든 씨앗과 똑같은 모양이라, 새로 익힐 것이 없다:
 
 ```
-~/.claude/skills/humanize-<이름>/
+~/.claude/skills/humanize-NAME/                  # Claude Code
+${CODEX_HOME:-~/.codex}/skills/humanize-NAME/    # Codex
 ├── SKILL.md                  # §0 철칙 + 내 축별 규칙 + 워크플로 + 자가검증
 ├── scripts/style_metrics.py  # 내 기준선 밴드 baked-in (+ 언어 플래그)
 └── references/
@@ -194,6 +196,7 @@ personal-humanizer-maker/
 ├── setup/install.sh
 └── skills/personal-humanizer-maker/
     ├── SKILL.md                      # 오케스트레이터
+    ├── agents/openai.yaml            # Codex UI metadata
     ├── references/                   # taxonomy.{ko,en}.md · signal-map.md · ironclad.md
     ├── scripts/                      # profile_corpus.py · emit_skill.py · roundtrip_check.py
     └── templates/                    # SKILL.md.tmpl · style_metrics.py.tmpl

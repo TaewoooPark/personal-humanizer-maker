@@ -101,7 +101,7 @@ cd personal-humanizer-maker
 # Claude Code (default) -> ~/.claude/skills
 bash setup/install.sh
 
-# Codex -> ~/.agents/skills
+# Codex -> ~/.codex/skills (+ ~/.agents/skills mirror)
 bash setup/install.sh --target codex
 
 # Both
@@ -118,10 +118,10 @@ Pure standard-library Python 3.9+. No venv, no third-party packages, no network 
 Too busy to run three commands? You're already talking to a coding agent — make it earn its keep. Paste the repo link and one of these into Claude Code / Codex / Cursor:
 
 **English**
-> Clone `https://github.com/TaewoooPark/personal-humanizer-maker` and run `bash setup/install.sh`, then confirm the `personal-humanizer-maker` skill is active in my session. Once it's in, build a personal humanizer from a sample of my writing.
+> Clone `https://github.com/TaewoooPark/personal-humanizer-maker` and install it for this host (`bash setup/install.sh` in Claude Code, or `bash setup/install.sh --target codex` in Codex), then confirm the `personal-humanizer-maker` skill is active in my session. Once it's in, build a personal humanizer from a sample of my writing.
 
 **한국어**
-> `https://github.com/TaewoooPark/personal-humanizer-maker` 클론해서 `bash setup/install.sh` 실행하고, `personal-humanizer-maker` 스킬이 활성화됐는지 확인해줘. 되면 내가 쓴 글 샘플로 개인 휴머나이저 하나 만들어줘.
+> `https://github.com/TaewoooPark/personal-humanizer-maker` 클론해서 현재 호스트에 맞게 설치해줘(Claude Code면 `bash setup/install.sh`, Codex면 `bash setup/install.sh --target codex`). 그리고 `personal-humanizer-maker` 스킬이 활성화됐는지 확인해줘. 되면 내가 쓴 글 샘플로 개인 휴머나이저 하나 만들어줘.
 
 Yes — the tool for not sounding like an AI, installed by an AI. We're aware.
 
@@ -137,8 +137,9 @@ build a personal humanizer from this document I wrote: <path or paste>
 ```
 
 It asks one thing up front — **Korean or English** — then runs the pipeline and drops the
-emitted skill into `~/.claude/skills/humanize-<name>/`. From then on you humanize any text
-with *that* skill:
+emitted skill into the active host's skill root: `~/.claude/skills/humanize-NAME/` in
+Claude Code, or `${CODEX_HOME:-~/.codex}/skills/humanize-NAME/` in Codex. From then on you
+humanize any text with *that* skill:
 
 ```
 humanize this draft in my voice
@@ -153,7 +154,8 @@ skill it produces is reusable forever.
 An emitted skill mirrors the hand-made seed exactly, so nothing new has to be learned:
 
 ```
-~/.claude/skills/humanize-<name>/
+~/.claude/skills/humanize-NAME/                  # Claude Code
+${CODEX_HOME:-~/.codex}/skills/humanize-NAME/    # Codex
 ├── SKILL.md                  # §0 covenant + your per-axis rules + workflow + self-check
 ├── scripts/style_metrics.py  # your baseline bands baked in (+ language flag)
 └── references/
@@ -197,6 +199,7 @@ personal-humanizer-maker/
 ├── setup/install.sh
 └── skills/personal-humanizer-maker/
     ├── SKILL.md                      # orchestrator
+    ├── agents/openai.yaml            # Codex UI metadata
     ├── references/                   # taxonomy.{ko,en}.md · signal-map.md · ironclad.md
     ├── scripts/                      # profile_corpus.py · emit_skill.py · roundtrip_check.py
     └── templates/                    # SKILL.md.tmpl · style_metrics.py.tmpl
