@@ -50,6 +50,26 @@
 - 🇰🇷 🇬🇧 **Korean or English** — pick the language at the start; the taxonomy and the metrics switch with it.
 - ✅ **Self-verifying** — fully automatic, so the factory round-trips each emitted skill on held-out text and won't silently ship an overfit voice.
 
+## Not Just "Rewrite This in My Style"
+
+A normal prompt like *"make this sound like this sample"* is a one-off imitation. It asks
+the model to notice whatever it notices in the moment, and the next request starts over
+from scratch.
+
+`personal-humanizer-maker` turns the sample into a reusable, inspectable artifact:
+
+| One-off prompt | personal-humanizer-maker |
+|---|---|
+| Reads a sample and improvises | Measures the sample into a `quant_profile.json` first |
+| Style is whatever the model remembers | Seven axis specialists write explicit rules for sentence shape, register, lexicon, cohesion, stance, figuration, and formatting |
+| No persistent baseline | Emits `style_metrics.py` with the author's numeric bands baked in |
+| Hard to audit | Emits `style_profile.md` and examples mined from the author's own sentences |
+| Can drift or over-edit | Injects the same meaning-invariance covenant into every generated skill |
+| Every rewrite repeats the analysis | One build creates `humanize-<name>/`; every later rewrite reuses that skill |
+
+The output is not a vibe prompt. It is closer to a tiny style compiler: sample in,
+measured profile out, reusable skill emitted.
+
 ## Why It Exists
 
 Writing a style guide for your *own* voice by hand is slow and subjective. The seed skill
@@ -91,6 +111,87 @@ Three layers, kept deliberately separate:
 | **CODE** (deterministic, stdlib-only) | corpus profiler · skill emitter · round-trip checker | `scripts/profile_corpus.py`, `scripts/emit_skill.py`, `scripts/roundtrip_check.py` |
 | **REFERENCE** (static knowledge) | style-dimension taxonomy (ko/en) · signal→axis map · covenant · templates | `references/taxonomy.{ko,en}.md`, `references/signal-map.md`, `references/ironclad.md`, `templates/*` |
 | **LLM / multi-agent** (interpretive) | axis specialists · synthesizer · fidelity auditor | orchestrated from `SKILL.md` |
+
+## What It Learns
+
+The generated skill is readable. For a Korean public-rhetoric test built from Kim Gu's
+*My Wish* excerpts, the emitted `SKILL.md` learned rules like:
+
+```text
+SA1. Combine short explanatory sentences into longer declarative sentences around
+65-85 Korean characters, without exceeding 135 characters.
+
+RM1. End sentences with -다, -것이다, -이라 믿는다, or -하기 때문이다;
+avoid modern polite explanatory endings.
+
+SV1. Use "나는" to state public conviction and responsibility, not private preference.
+Expand individual judgment into "우리 사회", "나라", or "민족" when the source supports it.
+```
+
+For an English public-oratory test built from Lincoln texts, it learned a different rule
+set:
+
+```text
+SA2. Use parallel clause chains with repeated openings such as "if", "we", "that",
+or "it is" when the source presents alternatives or obligations.
+
+RM1. Keep the prose formal and contraction-free.
+
+CA3. End paragraphs on commitment, preservation, judgment, or consequence rather than
+on a neutral summary.
+```
+
+Those rules are paired with numeric bands such as mean sentence length, long-sentence
+ratio, declarative-ending ratio, passive/nominalization rate, bullet ratio, and emoji
+count. A rewrite can then be checked mechanically:
+
+```bash
+python3 humanize-kimgu-ko-test/scripts/style_metrics.py rewritten.md
+# strict 8/8, CONVERGED
+```
+
+## Before / After
+
+### Korean
+
+Neutral modern input:
+
+```text
+한국 사회가 기술을 잘 활용하려면 몇 가지 조건이 필요하다. 먼저 시민이 기술의 원리를 이해하고
+비판적으로 판단할 수 있어야 한다. 기업은 빠른 성장만 추구하지 말고 이용자의 권리와 안전을 함께
+고려해야 한다.
+```
+
+Generated Kim Gu-style rewrite:
+
+```text
+나는 우리 사회가 기술을 잘 쓰는 나라가 되려면 먼저 시민이 그 기술의 원리를 알고, 스스로 옳고 그름을
+판단할 힘을 길러야 한다고 믿는다. 기업도 빠른 성장만을 소원할 것이 아니라 이용자의 권리와 안전이
+함께 보장되어야 할 것이요, 정부도 규제를 세울 때에는 현장의 빠른 걸음과 공익의 큰 길이 서로
+어그러지지 않도록 해야 할 일이다.
+```
+
+The original matched **5 / 8** strict Korean bands. The rewrite matched **8 / 8**.
+
+### English
+
+Scientific input:
+
+```text
+Natural selection in each well-stocked country, must act chiefly through the competition
+of the inhabitants one with another, and consequently will produce perfection, or strength
+in the battle for life, only according to the standard of that country.
+```
+
+Generated Lincoln-style rewrite:
+
+```text
+Natural selection, in each well-stocked country, must act chiefly through competition,
+one inhabitant with another. It may therefore produce perfection, or strength in the
+battle for life, only by the standard of that country.
+```
+
+The original matched **10 / 12** strict Lincoln bands. The rewrite matched **12 / 12**.
 
 ## Install
 
@@ -165,14 +266,13 @@ ${CODEX_HOME:-~/.codex}/skills/humanize-NAME/    # Codex
 
 ## Benchmark
 
-**The question:** build a voice profile from a *single* document — do its numeric bands
-still fit *other* documents by the same author (generalization), and *reject* a different
-author (discrimination)? Tested on a **public, external, reproducible** corpus — **Paul
-Graham essays** (consistent voice, all public) — not the maintainer's own writing. No
-third-party text is stored here; only derived numbers. Full method + reproduction:
+**Two questions:** can a one-document profile generalize to other texts by the same author,
+and can an emitted skill actually move a different input into the learned style bands?
+Tested with public corpora and smoke-test rewrites in both English and Korean. Full method:
 [`docs/benchmark.md`](./docs/benchmark.md).
 
-**Build from one essay** (*How to Work Hard*), **test on five held-out essays:**
+**Generalization:** build from one Paul Graham essay (*How to Work Hard*), test on five
+held-out essays:
 
 | Evaluation | Strict bands | Convergence | Verdict |
 |---|:--:|:--:|:--:|
@@ -186,6 +286,17 @@ sentence-length signature (mean **33 words** vs. the PG band **[13, 22]**), not 
 formal prose shares. The 7-axis multi-agent pass captured *this* voice, not a template:
 **keep contractions**, pivot on **"But / And yet"** (never *however / therefore*), land
 paragraphs on a **blunt fragment** (*"There isn't."*).
+
+**Rewrite smoke tests:**
+
+| Test | Before | After | Verdict |
+|---|:--:|:--:|:--:|
+| Kim Gu-style Korean rewrite | 5 / 8 | **8 / 8** | CONVERGED |
+| Lincoln-style English rewrite | 10 / 12 | **12 / 12** | CONVERGED |
+
+These are not claims of perfect authorship cloning. They show the intended product
+behavior: the factory creates a measurable, reusable voice skill, and a consumer model can
+use that skill to move a draft toward the learned profile while preserving facts.
 
 ## Repository Layout
 

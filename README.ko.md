@@ -49,6 +49,25 @@
 - 🇰🇷 🇬🇧 **한국어 또는 영어** — 시작 시 언어를 고르면 taxonomy와 metrics가 함께 전환된다.
 - ✅ **자가검증** — 전자동이므로, 공장은 방출된 스킬을 홀드아웃 텍스트에 왕복 적용해 과적합된 voice를 조용히 내보내지 않는다.
 
+## 그냥 "이 글 문체로 저 글 다듬어줘"와 뭐가 다른가
+
+보통의 프롬프트는 일회성 흉내에 가깝다. 모델이 그 순간 샘플에서 눈에 띄는 특징을 몇 개 잡고,
+다음 요청에서는 다시 처음부터 감으로 시작한다.
+
+`personal-humanizer-maker`는 샘플을 재사용 가능한 산출물로 바꾼다:
+
+| 일회성 프롬프트 | personal-humanizer-maker |
+|---|---|
+| 샘플을 읽고 즉석에서 흉내낸다 | 먼저 `quant_profile.json`으로 샘플의 형태를 측정한다 |
+| 문체는 모델이 기억한 느낌에 의존한다 | 7개 축 분석가가 문장 건축·종결·어휘·논증·시점·수사·포맷 규칙을 명시한다 |
+| 기준선이 남지 않는다 | 저자 수치 밴드가 baked-in 된 `style_metrics.py`를 방출한다 |
+| 감사하기 어렵다 | `style_profile.md`와 저자 문장에서 캔 before/after 예문을 남긴다 |
+| 과윤문·의미 변형이 섞이기 쉽다 | 모든 방출 스킬에 의미 불변 철칙을 주입한다 |
+| 매번 분석을 반복한다 | 한 번 빌드한 `humanize-<이름>/` 스킬을 계속 재사용한다 |
+
+즉 이것은 "문체 프롬프트"라기보다 작은 문체 컴파일러에 가깝다. 샘플을 넣으면 측정 가능한
+프로파일이 나오고, 그 프로파일로 재사용 가능한 스킬이 만들어진다.
+
 ## 왜 필요한가
 
 *자기* 문체의 스타일 가이드를 손으로 써 내려가는 일은 더디고 주관적일 수밖에 없는바, 씨앗 스킬
@@ -90,6 +109,85 @@ humanize-<이름>/     독립 스킬: SKILL.md + style_metrics.py(내 밴드) + 
 | **CODE** (결정적, stdlib-only) | 코퍼스 프로파일러 · 스킬 방출기 · 왕복 검증기 | `scripts/profile_corpus.py`, `scripts/emit_skill.py`, `scripts/roundtrip_check.py` |
 | **REFERENCE** (정적 지식) | style-dimension taxonomy(ko/en) · 신호→축 매핑 · 철칙 · 템플릿 | `references/taxonomy.{ko,en}.md`, `references/signal-map.md`, `references/ironclad.md`, `templates/*` |
 | **LLM / 다중 에이전트** (해석) | 축별 분석가 · 종합기 · 충실도 감사관 | `SKILL.md`에서 오케스트레이션 |
+
+## 무엇을 학습하는가
+
+방출된 스킬은 사람이 읽을 수 있다. 김구 「나의 소원」 계열 샘플로 만든 한국어 테스트 스킬은
+예컨대 이런 규칙을 배웠다:
+
+```text
+SA1. 짧은 설명문은 2~3개씩 묶어 평균 65~85자 안팎의 긴 평서문으로 늘리되,
+한 문장은 135자를 넘기지 않는다.
+
+RM1. 문장 끝은 '-다', '-것이다', '-이라 믿는다', '-하기 때문이다' 중심으로 통일하고,
+현대적인 설명체 '~합니다/~해요'는 쓰지 않는다.
+
+SV1. '나는'은 사적인 취향이 아니라 신념과 책임을 밝힐 때 쓴다.
+개인의 판단은 '우리 사회', '나라', '민족'의 과제로 넓혀 말한다.
+```
+
+Lincoln 연설체 샘플로 만든 영어 테스트 스킬은 전혀 다른 규칙을 배웠다:
+
+```text
+SA2. Use parallel clause chains with repeated openings such as "if", "we", "that",
+or "it is" when the source presents alternatives or obligations.
+
+RM1. Keep the prose formal and contraction-free.
+
+CA3. End paragraphs on commitment, preservation, judgment, or consequence rather than
+on a neutral summary.
+```
+
+이 규칙들은 평균 문장 길이, 장문 비율, 평서문 비율, 피동·명사화 비율, 불릿 비율, 이모지 수 같은
+수치 밴드와 함께 묶인다. 그래서 윤문 결과를 감이 아니라 스크립트로 다시 잴 수 있다:
+
+```bash
+python3 humanize-kimgu-ko-test/scripts/style_metrics.py rewritten.md
+# strict 8/8, CONVERGED
+```
+
+## 전후 예시
+
+### 한국어
+
+중립적인 현대 설명문:
+
+```text
+한국 사회가 기술을 잘 활용하려면 몇 가지 조건이 필요하다. 먼저 시민이 기술의 원리를 이해하고
+비판적으로 판단할 수 있어야 한다. 기업은 빠른 성장만 추구하지 말고 이용자의 권리와 안전을 함께
+고려해야 한다.
+```
+
+김구식 테스트 스킬로 윤문:
+
+```text
+나는 우리 사회가 기술을 잘 쓰는 나라가 되려면 먼저 시민이 그 기술의 원리를 알고, 스스로 옳고 그름을
+판단할 힘을 길러야 한다고 믿는다. 기업도 빠른 성장만을 소원할 것이 아니라 이용자의 권리와 안전이
+함께 보장되어야 할 것이요, 정부도 규제를 세울 때에는 현장의 빠른 걸음과 공익의 큰 길이 서로
+어그러지지 않도록 해야 할 일이다.
+```
+
+원문은 김구 profile 기준 **5 / 8** strict 밴드에 들어왔고, 윤문 후에는 **8 / 8**에 들어왔다.
+
+### 영어
+
+과학 산문 입력:
+
+```text
+Natural selection in each well-stocked country, must act chiefly through the competition
+of the inhabitants one with another, and consequently will produce perfection, or strength
+in the battle for life, only according to the standard of that country.
+```
+
+Lincoln식 테스트 스킬로 윤문:
+
+```text
+Natural selection, in each well-stocked country, must act chiefly through competition,
+one inhabitant with another. It may therefore produce perfection, or strength in the
+battle for life, only by the standard of that country.
+```
+
+원문은 Lincoln profile 기준 **10 / 12** strict 밴드에 들어왔고, 윤문 후에는 **12 / 12**에 들어왔다.
 
 ## 설치
 
@@ -164,13 +262,12 @@ ${CODEX_HOME:-~/.codex}/skills/humanize-NAME/    # Codex
 
 ## 벤치마크
 
-**물음은 이렇다.** 문서 *한 편*으로 voice 프로파일을 빌드했을 때, 그 수치 밴드가 같은 저자의
-*다른* 문서들에도 들어맞는가(일반화), 그리고 *다른* 저자는 밀어내는가(판별)? **공개·외부·재현
-가능한** 코퍼스 — **Paul Graham 에세이**(문체가 일관되고 전부 공개) — 로 검증했다. 유지자 본인의
-글이 아니다. 서드파티 원문은 담지 않고 도출 수치만 싣는다. 방법론과 재현:
+**물음은 두 가지다.** 문서 *한 편*으로 만든 voice 프로파일이 같은 저자의 다른 글에도 일반화되는가,
+그리고 방출된 스킬이 실제로 다른 입력문을 학습된 문체 밴드 안으로 옮길 수 있는가. 공개 코퍼스와
+한국어/영어 smoke test rewrite로 검증했다. 방법론과 재현:
 [`docs/benchmark.md`](./docs/benchmark.md).
 
-**에세이 한 편**(*How to Work Hard*)으로 빌드해 **홀드아웃 다섯 편**에 검증:
+**일반화:** Paul Graham 에세이 한 편(*How to Work Hard*)으로 빌드해 홀드아웃 다섯 편에 검증:
 
 | 평가 대상 | strict 밴드 | 수렴 | 판정 |
 |---|:--:|:--:|:--:|
@@ -183,6 +280,17 @@ ${CODEX_HOME:-~/.codex}/skills/humanize-NAME/    # Codex
 에서 정확히 갈리며, 격식 산문이 공유하는 특성에서 갈리지 않는다. 7축 다중 에이전트 분석은 템플릿이
 아니라 *그* 저자의 voice를 잡아냈다 — **축약형 보존**, **"But / And yet"**로 전환(*however /
 therefore*가 아니라), 문단을 **짧은 단정 조각**(*"There isn't."*)으로 착지.
+
+**Rewrite smoke test:**
+
+| 테스트 | 전 | 후 | 판정 |
+|---|:--:|:--:|:--:|
+| 김구식 한국어 윤문 | 5 / 8 | **8 / 8** | 수렴 |
+| Lincoln식 영어 윤문 | 10 / 12 | **12 / 12** | 수렴 |
+
+이 숫자는 완벽한 저자 복제를 주장하는 것이 아니다. 의도한 제품 동작은 더 구체적이다. 공장은 측정
+가능하고 재사용 가능한 voice 스킬을 만들고, 그 스킬을 소비하는 모델은 사실을 보존한 채 초안을
+학습된 문체 프로파일 쪽으로 옮긴다.
 
 ## 저장소 구조
 
